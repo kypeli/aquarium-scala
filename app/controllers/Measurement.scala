@@ -15,17 +15,8 @@ import java.util.Calendar
 
 class Measurement extends Controller {
   def getAll = Action {
-    val mongoUri = current.configuration.getString("mongodb.uri")
-
-    mongoUri.map { 
-      uri => 
-        Logger.info(s"Getting all measurements.")
-
-        val mongoUri = MongoClientURI(uri)
-        val db = mongoUri.database.get
-        val mongo = MongoClient(mongoUri)
-        val coll = mongo(db)("measurements")
-
+    measurementsCollection.map {
+      coll => 
         val timeConstraint = Math.floor(Calendar.getInstance().getTimeInMillis() / 1000) - 60*60*24*2;
         val values = coll.find("epoch_timestamp" $gt timeConstraint)
                          .sort(MongoDBObject("epoch_timestamp" -> 1))
@@ -41,14 +32,37 @@ class Measurement extends Controller {
           )
 
         Ok(response)
-
     }.getOrElse(InternalServerError("Could not connect to DB."))
   }
 
   def add = (Action andThen AddMeasurementFilter) { request => 
-    // TODO
-    val formData = request.body.asFormUrlEncoded
-    val measurement = formData.get("measurement").head
-    Ok(measurement)
+    val json = request.body.asJson.get
+    Logger.debug("New request: " + Json.prettyPrint(json))
+    val newDocument = MongoDBObject(
+                                    "temperature" -> (json \ "temperature").as[String],
+                                    "timestamp" -> (json \ "timestamp").as[String],
+                                    "epoch_timestamp" -> (json \ "epoch_timestamp").as[Int]
+                                   )
+    measurementsCollection.map {
+      coll => 
+        coll.insert(newDocument)
+        Logger.debug("New document: " + newDocument.toString)
+        Ok
+    }.getOrElse(InternalServerError("Could not connect to DB."))
+  }
+
+  private def measurementsCollection = {
+    val mongoUri = current.configuration.getString("mongodb.uri")
+
+    mongoUri.map { 
+      uri => 
+        Logger.info(s"Getting MongoDB collection 'measurements'.")
+
+        val mongoUri = MongoClientURI(uri)
+        val db = mongoUri.database.get
+        val mongo = MongoClient(mongoUri)
+        val coll = mongo(db)("measurements")
+        coll
+    }
   }
 }
