@@ -1,0 +1,6 @@
+GET     /                           controllers.Application.index
+GET     /v1/measurements            controllers.Measurement.getAll
+POST    /v1/measurements/new        controllers.Measurement.add(measurement: String)
+
+# Map static resources from the /public folder to the /assets URL path
+GET     /assets/*file               controllers.Assets.versioned(path="/public", file: Asset)
