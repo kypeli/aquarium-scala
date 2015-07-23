@@ -1,6 +1,7 @@
 package controllers
 
 import models._
+import filters._
 
 import play.api._
 import play.api.mvc._
@@ -44,8 +45,10 @@ class Measurement extends Controller {
     }.getOrElse(InternalServerError("Could not connect to DB."))
   }
 
-  def add(measurement: String) = Action {
+  def add = (Action andThen AddMeasurementFilter) { request => 
     // TODO
-    Ok
+    val formData = request.body.asFormUrlEncoded
+    val measurement = formData.get("measurement").head
+    Ok(measurement)
   }
 }
