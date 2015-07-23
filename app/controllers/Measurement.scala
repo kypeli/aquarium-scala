@@ -19,7 +19,6 @@ class Measurement extends Controller {
     mongoUri.map { 
       uri => 
         Logger.info(s"Getting all measurements.")
-        Logger.debug(s"Connecting to Mongo: $uri")
 
         val mongoUri = MongoClientURI(uri)
         val db = mongoUri.database.get
